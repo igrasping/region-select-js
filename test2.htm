@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>测试页面</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+</head>
+<body>
+
+选择的区域
+<input id="c" style="width:100%;" type="hidden" name="country" />
+<input id="s" style="width:100%;" type="hidden" name="s" />
+<input id="ct" style="width:100%;" type="hidden" name="city" />
+<input id="x" style="width:100%;" type="hidden" name="xian" />
+
+全部的选择区域
+<span id="regoinHolderAll"></span><br/>
+
+
+<script src="regions.init.js"></script>
+<script>
+function _(id){return document.getElementById(id);}
+
+regions.load(function(){
+	regions.toSelect(_('regoinHolderAll'), function(path){console.log(path);
+		_('c').value = path.length >0 ? path[0] : '';//国家
+		_('s').value = path.length > 1 ? path[1] : '';//省
+		_('ct').value = path.length >2 ? path[2] : '';//城市
+		_('x').value = path.length >3 ? path[3] : '';//县
+	}, '中国/北京市/海淀区');
+});
+</script>
+</body>
