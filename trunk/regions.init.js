@@ -12,35 +12,28 @@
 			}
 		}
 	};
-	nameSpace.load=function(func){//行政数据异步加载,所以,需要立刻回调,请使用本方法 前缀.load(function(){过程});
+	nameSpace.load=function(func){//行政数据异步加载,所以,需要立刻回调,请使用本方法,如 前缀.load(function(){前缀.toSelect();});
 		//ie会把整个js处理完成才处理下个script块
-		if ('object' == typeof nameSpace.regions) {
-			return func();
-		}
-		
+		if ('object' == typeof nameSpace.regions) return func();		
 		('object' != typeof nameSpace.loadFuns) && (nameSpace.loadFuns = []);
 		nameSpace.loadFuns[nameSpace.loadFuns.length] = func;
 	};
-	nameSpace.css = function(css){
+	nameSpace.css = function(cssTxt){//写入css代码块
 		var style = document.createElement('STYLE');
-		style.type="text/css";
-		if (style.styleSheet) {//ie6
-			style.styleSheet.cssText = css;
-		} else {
-			style.innerHTML = css;
-		}
-		
+		style.type="text/css";		
+		if (style.styleSheet)  style.styleSheet.cssText = cssTxt;//ie6
+			else style.innerHTML = cssTxt;		
 		var head = document.getElementsByTagName('HEAD');
-		if (!head) return nameSpace.E('找不到head标签');
+		if (!head) return nameSpace.E('写入css代码块失败,找不到head标签');
 		head = head.length ? head[0] : head;
 		head.appendChild(style);
 	};
-	nameSpace.toSortCode = function (obj){//对原始结构排序,并返回sort后的代码
+	nameSpace.toSortCode = function (obj /*按本js需要格式好的数组,即意义在于不需要人工排序,写好结构后,使用本方法排序再替换掉数据*/){//对原始结构排序,并返回sort后的代码
 		if ('function' != typeof String.localeCompare) return '浏览器不支持中文排序,请更换浏览器再尝试';
 		var sortFun = function(a, b){
 			if ('object' == typeof a) a = a[0];
 			if ('object' == typeof b) b = b[0];
-			return a.localeCompare(b);
+			return a.localeCompare(b);//使用浏览器本地化的多字节字符排序
 		};	
 		var cls = function(str) {return str.replace(/"/g, '\\"').replace(/[\n\r]/g, '');};
 		var fo = function (ob, tab) {
@@ -53,8 +46,7 @@
 				
 				if ('string' == typeof v) {//无子区域
 					code[code.length] = tab+ '"' +cls(v)+ '"';
-				} else if ('object' == typeof v){//有子区域
-				
+				} else if ('object' == typeof v){//有子区域				
 					code[code.length] = tab+ '["' +cls(v[0])+ '", [\n'
 										+fo(v[1], tab+'\t')
 										+'\n' +tab+ ']]';
@@ -67,17 +59,25 @@
 		};
 		return '[\n' +fo('object' == typeof obj ? obj : namSpace.regions, '\t')+ '\n]';
 	};
-	nameSpace.toSQL = function(){//格式化成sql格式
+	nameSpace.toSQL = function(regionObj){//格式化成sql格式
 	};
-	nameSpace.toSelect = function (box /* 绑定下拉的html对象,不能是id值 */, changeFuc /* 下拉变化后回调,function(path){console.log(path);} */, defVals /*初始值 = '中国/北京市/海淀区/中关村/.../区域N' 或 null */, path /* 路径,如 [32][1] 是中国区域 或 null,用于只列举某区域,必须传入[],否则默认使用全部*/) {//格式成下拉对象,改变区域时,会从顶级作为参数传递
-		if (!defVals || /^\s*$/.test(defVals)) defVals = '';
+	nameSpace.toSelect = function (
+		box /* 绑定下拉的html对象,或是id字符串值 */
+		, changeFuc /* 下拉变化后回调,function(path){console.log(path);} */
+		, initRegions /*初始值 = '中国/北京市/海淀区/中关村/.../区域N' 或 null, 只显示从头匹配部分,后面不匹配的将弃用*/
+		, path /* 路径,如 [32][1] 是中国区域,即数据 变量名[32][1]意思 或 null,用于只列举某区域,必须传入[],否则默认使用全部, 关于路径,请看数据结构*/
+		, maxLevel /* 显示path 后的级数,如2,中国->省;3,中国->省->市 */
+	) {//在页面html对象绑定行政区域选择下拉对象,改变区域时会触发事件,同页面支持无限个实例
+		if (!initRegions || /^\s*$/.test(initRegions)) initRegions = '';
+		if ('number' != typeof maxLevel || maxLevel < 1) maxLevel = 0;//不需要规定级
 		var thisFuc = 'toSelect';
 		var ID = function(id) {return document.getElementById(id);};
-		if ('object' != typeof box || !box.tagName) return nameSpace.E('请把' +thisFuc+ '的 box变量 指向一个html对象');
+		'string' == typeof box && (box = ID(box));
+		if ('object' != typeof box || !box.tagName) return nameSpace.E('请把' +thisFuc+ '的 box变量 指向一个html对象(或是它的ID字符串)');
 		if (!nameSpace.toSelectI) nameSpace.toSelectI = 0;
 		var idPre = 'regionTS' + nameSpace.toSelectI++;
 		var maxHeight = 300;//下拉的高度
-		var ahcn = 'h';//选择区域高亮类
+		var ahcn = 'regionHL';//选择区域高亮类
 		var clsPre = 'span.regionHolder ';
 		nameSpace.toSelectI < 2 && nameSpace.css(//只需要样式一次
 			clsPre+ '{white-space: nowrap;position:relative;padding:5px;border:0px solid black;font-size:12px;}\n'
@@ -92,7 +92,7 @@
 			+ clsPre+ ' a.regionPath:hover{color:lightgray;}\n'
 			+ clsPre+ ' span.regionGLine{color:lightgray;}\n'
 			+ clsPre+ ' span.regionDot{color:gray;}\n'
-			+ clsPre+ ' span.regionHide{visibility: hidden;}\n'
+			+ clsPre+ ' span.regionBlank{visibility: hidden;}\n'
 			+ clsPre+ ' span.regionArrow{font-weight:bold;margin-left:5px;}\n'
 			+ clsPre+ ' span.regionTxtBlank{margin-right:10px;}\n'//补充regionName空闲
 		);		
@@ -102,7 +102,7 @@
 			+ '<a href="javascript:;" id="' +idPre+ 'Path" class="regionPath" title="点击弹出地区选择下拉框,移走鼠标会自动隐藏"><span id="' +idPre+ 'PathName" >请选择地区</span><span class="regionArrow" id="' +idPre+ 'Arrow">&darr;</span></a>'
 			+ '</span>';
 		if ('function' != typeof changeFuc) return nameSpace.E('请把' +thisFuc+ '的 changeFuc 变量设置为function对象');
-		try {
+		try {//如果指定了行政区域的显示开始范围
 			if (path && path.indexOf('[') > -1) {
 				eval('path = nameSpace.regions' +path);//保持结构
 			} else {
@@ -110,84 +110,86 @@
 			}
 		} catch (e) {nameSpace.E(thisFuc+ '的path变量值有误,被忽略', e)}
 		
-		if ('object' != typeof path) {
+		if ('object' != typeof path) {//指定行政区域范围获取失败,重置为全部
 			path = nameSpace.regions;
 			nameSpace.E(thisFuc+ '的path变量值有误,重置成全部');
 		}
 		
-		if (defVals.length) defVals = '/' +defVals+ '/';
+		if (initRegions.length) initRegions = '/' +initRegions+ '/';
 		var spreadId = '';//上个展开路径
-		var defValsPath = '/';
-		var mkList = function(lp, linePre, level, idPath){
-			if ('number' != typeof level) level = 0;
+		var initRegions2 = '/';
+		var mkHtml = function(regoinObj, linePre, loop, idPreVar){//递归生成行政下载html
+			if ('number' != typeof loop) loop = 1;			
+			if (maxLevel && loop > maxLevel) return '';//达到最小行政区域级数	
 			if ('string' != typeof linePre) linePre = '';
-			if ('string' != typeof idPath) idPath = idPre+ 'A';
-			if ('.object.string.'.indexOf('.' +(typeof lp) + '.') < 0) return '';
-			var lh = '';
+			if ('string' != typeof idPreVar) idPreVar = idPre+ 'A';
+			if ('.object.string.'.indexOf('.' +(typeof regoinObj) + '.') < 0) return '';
+			var htm = '';
 			
-			for (var fi = 0; fi < lp.length; fi++) {
-				var v = lp[fi];
-				var j = '<span class="regionDot">' +('' == linePre + lh ? '┏' /*没上层*/ :'┣') + '</span>';//树叉
-				var p = '<span class="regionGLine">┃</span>';//同级树叉虚线,不能用┇,在ie下面认为是半角符号
-				var idP = idPath +'_'+ fi;
+			for (var fi = 0; fi < regoinObj.length; fi++) {
+				var fiObj = regoinObj[fi];
+				var fiSub = null;
 				
-				if (1 == lp.length) {//只有一个
-					j = p = '';
-				} else if (fi + 1 >= lp.length) {//最后一组
-					j = '<span class="regionDot">┗</span>';
-					p = '<span class="regionHide">┃</span>';//末行左边右移1┗(全角)
-				}
-				
-				var asc = '';//选择中的样式
-				var sub = '';
-				var rn = v;//区域名
-				
-				if ([].constructor == v.constructor) {//有子级					
-					sub = mkList(v[1], linePre+'<span class="regionTxtBlank">' +p+ '</span>', level+1, idPath+'_'+fi);
-					rn = v[0];
-				} else if ('string' != typeof v) {//不支持格式
-					nameSpace.E('出错,不明的区域值', v);
+				if ('string' == typeof fiObj) {//没子级,有效
+					
+				} else if ([].constructor == fiObj.constructor) {//有子级
+					fiSub = fiObj[1];
+					fiObj = fiObj[0];
+				} else {//无效无法处理的行政数据
+					nameSpace.E('出错,不明的区域值', fiObj);
 					continue;
-				} else { //字符串
 				}
 				
+				var j = '<span class="regionDot">' +('' == linePre + htm ? '┏' /*没上层*/ :'┣') + '</span>';//树分叉点
+				var p = '<span class="regionGLine">┃</span>';//同级树叉点虚连线,不能用┇,在ie下面认为是半角符号
+				var idPath = idPreVar +'_'+ fi;				
+				var asc = '';//选择中的样式
 				
-				if (defVals.indexOf(defValsPath +rn+ '/') == 0) {
-					defValsPath += rn+'/';
+				if (1 == regoinObj.length) {//只有一个
+					j = p = '';
+				} else if (fi + 1 >= regoinObj.length) {//最后一组
+					j = '<span class="regionDot">┗</span>';
+					p = '<span class="regionBlank">┃</span>';//末行左边右移1┗(全角)
+				}
+				
+				if (0 == initRegions.indexOf(initRegions2 +fiObj+ '/')) {//初始化时选中的行政区域
+					initRegions2 += fiObj+'/';
 					asc = ahcn;						
-					spreadId = idP;
+					spreadId = idPath;//记住最新的id
 				}
 					
-				lh += '<a href="javascript:;" target="_self" name="' +idPre+ 'SubAS" id="' +idP+ '" class="' +asc+ '" value="' +rn+ '" title="' +rn+ '">' +linePre+j+ '<span class="regionName">' +rn+ '</span></a>';
+				htm += '<a href="javascript:;" target="_self" name="' +idPre+ 'SubAS" id="' +idPath+ '" class="' +asc+ '" value="' +escape(fiObj)+ '" title="' +fiObj+ '">' +linePre+j+ '<span class="regionName">' +fiObj+ '</span></a>';
 				
-				if (sub.length) {
-					lh += '<div class="regionSub" id="' +idP+ 's" style="' +(asc.length ? 'display:block;': '')+ '">' +sub+ '</div>';
+				if (fiSub) {//有子级
+					htm += '<div class="regionSub" id="' +idPath+ 'Sub" style="' +(asc.length ? 'display:block;': '')+ '">' 
+						+mkHtml(fiSub, linePre+'<span class="regionTxtBlank">' +p+ '</span>', loop+1, idPath)
+						+ '</div>';
 				}
 			}
 			
-			return lh;
+			return htm;
 		};
-		var addClass = function(id, c) {
+		var classAdd = function(id, c) {//加类
 			var cn = ID(id).className;
 			ID(id).className = !cn ? c : ((' ' +cn+ ' ').replace(new RegExp(' ' +c+ ' ', 'g'), '') + ' ' +c).replace(/^\s+|\s+$/, '');
 		};
-		var delClass = function(id, c) {
+		var classDel = function(id, c) {//删除类
 			var cn = ID(id).className;
 			if (!cn) return;
 			ID(id).className = (' ' +cn+ ' ').replace(new RegExp(' ' +c+ ' ', 'g'), '').replace(/^\s+|\s+$/, '');
 		};
-		ID(idPre+ 'Selecter').innerHTML = mkList(path);
-		defValsPath = defValsPath.replace(/^\/|\/$/g, '');//不能使用默认值,可能路径有误
+		ID(idPre+ 'Selecter').innerHTML = mkHtml(path);
+		initRegions2 = initRegions2.replace(/^\/|\/$/g, '');//注意不能使用给出的默认值,可能给出行政区域路径有误,只能使用经过过滤后的.
 		
-		if (defVals && defValsPath.length) {//有默认值,也触发改变事件			
-			ID(idPre+ 'PathName').innerHTML = defValsPath;
-			changeFuc(defValsPath.split('/'));
+		if (initRegions.length && initRegions2.length) {//有初始化的行政区域,也触发改变事件			
+			ID(idPre+ 'PathName').innerHTML = initRegions2;
+			changeFuc(initRegions2.split('/'));
 		}
 		var pathHeight = 0;
 		ID(idPre+ 'Path').onclick = function(){
 			//有可能被放到父结构是display:none;结构中,所以,只能在显示时再获取内容高度
-			if (!pathHeight) {//只取一次,防止显示后还再,高度就有误
-				pathHeight = ID(idPre+ 'Holder').offsetHeight - 2;
+			if (!pathHeight) {//只取一次,防止显示下拉后父高度就有误
+				pathHeight = ID(idPre+ 'Holder').offsetHeight - 2;//向上提一点,防止掉出父框下边
 				ID(idPre+ 'Selecter').style.top = pathHeight + 'px';
 			}
 			
@@ -208,19 +210,19 @@
 		};
 		var regionSubA = document.getElementsByName(idPre+ 'SubAS');
 		
-		for (var fi = 0; fi < regionSubA.length; fi++) {
+		for (var fi = 0; fi < regionSubA.length; fi++) {//为所有的行政对象a绑定点击事件
 			if (!regionSubA[fi].tagName) continue;
 			regionSubA[fi].onclick = function() {//点击
 				var id = this.id;
-				addClass(id, ahcn);//高亮
-				var s = ID(id+'s');
+				classAdd(id, ahcn);//高亮
+				var s = ID(id+'Sub');
 				var clkPath = [];
 				var clkIds = id.split('_');
 				var clkId = clkIds[0];
 
 				for (var fi = 1 /* 0为前缀 */; fi < clkIds.length; fi++) {//取出完整路径
 					clkId += '_' +clkIds[fi];
-					clkPath[clkPath.length] = ID(clkId).getAttribute('value');
+					clkPath[clkPath.length] = unescape(ID(clkId).getAttribute('value'));
 				};
 				
 				ID(idPre+ 'PathName').innerHTML = clkPath.join('/');
@@ -235,11 +237,11 @@
 					var cutId = spreadId;
 					
 					while(cutId.indexOf('_') > -1 && id.indexOf(cutId) < 0) {//收缩直到与当前的重合
-						if (ID(cutId+'s')) {
-							ID(cutId+'s').style.display = 'none';
+						if (ID(cutId+'Sub')) {
+							ID(cutId+'Sub').style.display = 'none';
 						}
 						
-						delClass(cutId, ahcn);//移除高亮
+						classDel(cutId, ahcn);//移除高亮
 						cutId = cutId.replace(/_\d+$/, '');//截掉终级id
 					};
 				}
@@ -257,7 +259,7 @@
 		for (var fi =0; fi<nameSpace.loadFuns.length;fi++)
 			'function' == typeof nameSpace.loadFuns[fi] && nameSpace.loadFuns[fi]();
 	};
-	if (!document.body) return nameSpace.E('未找到document.body请把本js移动到<body>标签之后载入');
+	if (!document.body) return nameSpace.E('未找到document.body请把本js移动到<body>标签之后载入,在ie7以下,需要明确写入<body>标签,浏览器不会自动添加');
 	if ('complete' == window.document.readyState) return nameSpace.E('本js不允许在onload后加载,因为会导致获取本身src失败的方法失效');
 	//自动获取本身src的方法不能在onload后,否则在ff中会失败
 	var js = document.getElementsByTagName('SCRIPT');	
@@ -266,7 +268,7 @@
 	var src = js.src;
 	if (!src) return nameSpace.E('取不到js的src属性');
 	var jsDir = src.replace(/[^\/]+\.js([#\?].*)?$/, '');
-	//加载行政数据js
+	//行政数据可能比较大,延时仿ajax加载
 	var js = document.createElement('SCRIPT');
 	js.src = jsDir+ 'regions.js';
 	js.id = 'regionsJsScript';
