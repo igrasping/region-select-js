@@ -1,7 +1,17 @@
-/* 中国县级及以上行政区域联动 */
+﻿/* 中国县级及以上行政区域联动 */
 (function(nameSpace) {
 	eval('nameSpace = window.' +nameSpace+ ' = {NS:"' +nameSpace+ '"};');
-	nameSpace.E=function() { if (window.console && window.console.log) console.log('window.' +nameSpace.NS+ '出错', arguments);};
+	nameSpace.E=function() {		
+		if (window.console && window.console.log) {
+			if ('object' == typeof arguments) {
+				for (var fi = 0; fi < arguments.length; fi++) {//ie的不支持
+					console.log('window.' +nameSpace.NS+ '出错',arguments[fi]);
+				}
+			} else {
+				console.log('window.' +nameSpace.NS+ '出错',arguments);
+			}
+		}
+	};
 	nameSpace.load=function(func){//行政数据异步加载,所以,需要立刻回调,请使用本方法 前缀.load(function(){过程});
 		//ie会把整个js处理完成才处理下个script块
 		if ('object' == typeof nameSpace.regions) {
@@ -60,7 +70,7 @@
 	nameSpace.toSQL = function(){//格式化成sql格式
 	};
 	nameSpace.toSelect = function (box /* 绑定下拉的html对象,不能是id值 */, changeFuc /* 下拉变化后回调,function(path){console.log(path);} */, defVals /*初始值 = '中国/北京市/海淀区/中关村/.../区域N' 或 null */, path /* 路径,如 [32][1] 是中国区域 或 null,用于只列举某区域,必须传入[],否则默认使用全部*/) {//格式成下拉对象,改变区域时,会从顶级作为参数传递
-		if (!defVals || /^\s*$/.test(defVals)) defVals = null;
+		if (!defVals || /^\s*$/.test(defVals)) defVals = '';
 		var thisFuc = 'toSelect';
 		var ID = function(id) {return document.getElementById(id);};
 		if ('object' != typeof box || !box.tagName) return nameSpace.E('请把' +thisFuc+ '的 box变量 指向一个html对象');
@@ -70,19 +80,26 @@
 		var ahcn = 'h';//选择区域高亮类
 		var clsPre = 'span.regionHolder ';
 		nameSpace.toSelectI < 2 && nameSpace.css(//只需要样式一次
-			clsPre+ '{white-space: nowrap;position:relative;}\n'
-			+ clsPre+ '.selBox{left:0px;z-index:99;white-space: nowrap;position: absolute;overflow-x:visible;overflow-y:auto;height:' +maxHeight+ 'px;border:1px solid black;background-color:white;padding:5px;display:none;}\n'
-			+ clsPre+ '.selBox a{display:block;white-space: nowrap;text-decoration:none;color:black;font-size:16px;line-height:16px;margin:0px;padding:0px;border:0px none;}\n'
-			+ clsPre+ '.selBox a span.areaTxt{font-size:12px;}\n'
-			+ clsPre+ '.selBox a:hover{color:blue;}\n'
-			+ clsPre+ '.selBox a.' +ahcn+ '{color:red;}\n'
-			+ clsPre+ '.selBox div.areaSub{display:none;}\n'
-			+ clsPre+ ' span.path{margin-bottom:5px;border:1px solid black;}\n'
+			clsPre+ '{white-space: nowrap;position:relative;padding:5px;border:0px solid black;font-size:12px;}\n'
+			+ clsPre+ ' a{text-decoration:none;}\n'
+			+ clsPre+ '.regionSelBox{top:0px;left:0px;z-index:99;white-space: nowrap;position: absolute;overflow-x:visible;overflow-y:auto;height:' +maxHeight+ 'px;border:1px solid lightgray;background-color:white;padding:5px;display:none;}\n'
+			+ clsPre+ '.regionSelBox a{display:block;white-space: nowrap;color:black;font-size:24px;line-height:24px;margin:0px;padding:0px;border:0px none;}\n'
+			+ clsPre+ '.regionSelBox a span.regionName{margin-left:10px;font-size:12px;line-height:12px;}\n'
+			+ clsPre+ '.regionSelBox a:hover{color:blue;}\n'
+			+ clsPre+ '.regionSelBox a.' +ahcn+ ' span.regionName{padding:1px 5px;border-color:gray;border-style:solid;border-width:1px 2px;background-color:;}\n'
+			+ clsPre+ '.regionSelBox div.regionSub{display:none;}\n'
+			+ clsPre+ ' a.regionPath{}\n'
+			+ clsPre+ ' a.regionPath:hover{color:lightgray;}\n'
+			+ clsPre+ ' span.regionGLine{color:lightgray;}\n'
+			+ clsPre+ ' span.regionDot{color:gray;}\n'
+			+ clsPre+ ' span.regionHide{visibility: hidden;}\n'
+			+ clsPre+ ' span.regionArrow{font-weight:bold;margin-left:5px;}\n'
+			+ clsPre+ ' span.regionTxtBlank{margin-right:10px;}\n'//补充regionName空闲
 		);		
 		box.innerHTML = ''
 			+'<span class="regionHolder" id="' +idPre+ 'Holder">'
-			+ '<div id="' +idPre+ 'Selecter" class="selBox"></div>'
-			+ '<span id="' +idPre+ 'Path" class="path">请选择地区</span>'
+			+ '<div id="' +idPre+ 'Selecter" class="regionSelBox"></div>'
+			+ '<a href="javascript:;" id="' +idPre+ 'Path" class="regionPath" title="点击弹出地区选择下拉框,移走鼠标会自动隐藏"><span id="' +idPre+ 'PathName" >请选择地区</span><span class="regionArrow" id="' +idPre+ 'Arrow">&darr;</span></a>'
 			+ '</span>';
 		if ('function' != typeof changeFuc) return nameSpace.E('请把' +thisFuc+ '的 changeFuc 变量设置为function对象');
 		try {
@@ -98,7 +115,7 @@
 			nameSpace.E(thisFuc+ '的path变量值有误,重置成全部');
 		}
 		
-		if (defVals) defVals = '/' +defVals+ '/';
+		if (defVals.length) defVals = '/' +defVals+ '/';
 		var spreadId = '';//上个展开路径
 		var defValsPath = '/';
 		var mkList = function(lp, linePre, level, idPath){
@@ -110,42 +127,41 @@
 			
 			for (var fi = 0; fi < lp.length; fi++) {
 				var v = lp[fi];
-				var j = '' == linePre + lh ? '┏' :'┣';
-				var p = '┆';
+				var j = '<span class="regionDot">' +('' == linePre + lh ? '┏' /*没上层*/ :'┣') + '</span>';//树叉
+				var p = '<span class="regionGLine">┃</span>';//同级树叉虚线,不能用┇,在ie下面认为是半角符号
 				var idP = idPath +'_'+ fi;
 				
-				if (1 == lp.length) {
+				if (1 == lp.length) {//只有一个
 					j = p = '';
 				} else if (fi + 1 >= lp.length) {//最后一组
-					j = '┗';
-					p = '';
+					j = '<span class="regionDot">┗</span>';
+					p = '<span class="regionHide">┃</span>';//末行左边右移1┗(全角)
 				}
 				
 				var asc = '';//选择中的样式
+				var sub = '';
+				var rn = v;//区域名
 				
-				if ([].constructor == v.constructor) {//有子级
-					if (defVals.indexOf(defValsPath +v[0]+ '/') == 0) {
-						defValsPath += v[0]+'/';
-						asc = ahcn;						
-						spreadId = idP;
-					}
-					
-					lh += '<a href="javascript:;" target="_self" name="' +idPre+ 'SubAS" id="' +idP+ '" class="' +asc+ '" value="' +v[0]+ '">' +linePre+ j+ '<span class="areaTxt">' +v[0]+ '</span></a>';
-					var sub = mkList(v[1], linePre+p+ '&nbsp;', level+1, idPath+'_'+fi);
-					
-					if (sub.length) {
-						lh += '<div class="areaSub" id="' +idP+ 's" style="' +(asc.length ? 'display:block;': '')+ '">' +sub+ '</div>';
-					}
-				} else if ('string' == typeof v) {//字符
-					if (defVals.indexOf(defValsPath +v+ '/') == 0) {
-						defValsPath += v+'/';
-						spreadId = idP;
-						asc = ahcn;
-					}
-					
-					lh += '<a href="javascript:;" target="_self" name="' +idPre+ 'SubAS" id="' +idP+ '" class="' +asc+ '" value="' +v+ '">' +linePre+j+ '<span class="areaTxt">' +v+ '</span></a>';
-				} else {
+				if ([].constructor == v.constructor) {//有子级					
+					sub = mkList(v[1], linePre+'<span class="regionTxtBlank">' +p+ '</span>', level+1, idPath+'_'+fi);
+					rn = v[0];
+				} else if ('string' != typeof v) {//不支持格式
 					nameSpace.E('出错,不明的区域值', v);
+					continue;
+				} else { //字符串
+				}
+				
+				
+				if (defVals.indexOf(defValsPath +rn+ '/') == 0) {
+					defValsPath += rn+'/';
+					asc = ahcn;						
+					spreadId = idP;
+				}
+					
+				lh += '<a href="javascript:;" target="_self" name="' +idPre+ 'SubAS" id="' +idP+ '" class="' +asc+ '" value="' +rn+ '" title="' +rn+ '">' +linePre+j+ '<span class="regionName">' +rn+ '</span></a>';
+				
+				if (sub.length) {
+					lh += '<div class="regionSub" id="' +idP+ 's" style="' +(asc.length ? 'display:block;': '')+ '">' +sub+ '</div>';
 				}
 			}
 			
@@ -164,27 +180,37 @@
 		defValsPath = defValsPath.replace(/^\/|\/$/g, '');//不能使用默认值,可能路径有误
 		
 		if (defVals && defValsPath.length) {//有默认值,也触发改变事件			
-			ID(idPre+ 'Path').innerHTML = defValsPath;
+			ID(idPre+ 'PathName').innerHTML = defValsPath;
 			changeFuc(defValsPath.split('/'));
 		}
-		
-		ID(idPre+ 'Selecter').style.top = (ID(idPre+ 'Path').offsetHeight - 1) + 'px';
-		ID(idPre+ 'Holder').onmouseover = function(){
+		var pathHeight = 0;
+		ID(idPre+ 'Path').onclick = function(){
+			//有可能被放到父结构是display:none;结构中,所以,只能在显示时再获取内容高度
+			if (!pathHeight) {//只取一次,防止显示后还再,高度就有误
+				pathHeight = ID(idPre+ 'Holder').offsetHeight - 2;
+				ID(idPre+ 'Selecter').style.top = pathHeight + 'px';
+			}
+			
 			clearTimeout(out2hide);
 			ID(idPre+ 'Selecter').style.display = 'block';
+			ID(idPre+ 'Arrow').innerHTML = '&uarr;';
 		};
 		var out2hide;
+		ID(idPre+ 'Holder').onmouseover = function(){
+			clearTimeout(out2hide);
+		}
 		ID(idPre+ 'Holder').onmouseout = function(){
 			clearTimeout(out2hide);
 			out2hide = setTimeout(function(){
+				ID(idPre+ 'Arrow').innerHTML = '&darr;';
 				ID(idPre+ 'Selecter').style.display = 'none';
-			}, 500);
+			}, 100);
 		};
-		var areaSubA = document.getElementsByName(idPre+ 'SubAS');
+		var regionSubA = document.getElementsByName(idPre+ 'SubAS');
 		
-		for (var fi = 0; fi < areaSubA.length; fi++) {
-			if (!areaSubA[fi].tagName) continue;
-			areaSubA[fi].onclick = function() {//点击
+		for (var fi = 0; fi < regionSubA.length; fi++) {
+			if (!regionSubA[fi].tagName) continue;
+			regionSubA[fi].onclick = function() {//点击
 				var id = this.id;
 				addClass(id, ahcn);//高亮
 				var s = ID(id+'s');
@@ -197,7 +223,7 @@
 					clkPath[clkPath.length] = ID(clkId).getAttribute('value');
 				};
 				
-				ID(idPre+ 'Path').innerHTML = clkPath.join('/');
+				ID(idPre+ 'PathName').innerHTML = clkPath.join('/');
 				changeFuc(clkPath);//触发改变事件
 				
 				if (s) {//有下级
