@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>测试页面</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+</head>
+<body>
+你选择了<br/>
+国家:<input type="button" id="c" name="country" />
+省:<input type="button"  id="s"  name="s" />
+市/区<input type="button" id="ct" name="city" />
+县<input type="button" id="x" name="city" />
+
+全部的选择区域
+<span id="regoinHolderAll"></span><br/>
+<br />
+
+你选择了<br/>
+国家:<input type="button" id="c2" name="country" />
+省:<input type="button"  id="s2"  name="s" />
+市/区<input type="button" id="ct2" name="city" />
+县<input type="button" id="x2" name="city" />
+
+全部的选择区域
+<span id="regoinHolderAll2"></span><br/>
+
+
+<script src="http://icon.chinahrd.net/v2/js/region/regions.init.js"></script>
+<script>
+function _(id){return document.getElementById(id);}
+
+regions.load(function(){
+	this.toSelect('regoinHolderAll', function(path){
+		if (window.console) console.log(path);
+		_('c').value = path.length >0 ? path[0] : '';//国家
+		_('s').value = path.length > 1 ? path[1] : '';//省
+		_('ct').value = path.length >2 ? path[2] : '';//城市
+		_('x').value = path.length >3 ? path[3] : '';//城市
+	}, '中国/北京市/海淀区',null, 5);
+});
+
+regions.load(function(){
+	this.toSelect('regoinHolderAll2', function(path){
+		if (window.console) console.log(path);
+		_('c2').value = path.length >0 ? path[0] : '';//国家
+		_('s2').value = path.length > 1 ? path[1] : '';//省
+		_('ct2').value = path.length >2 ? path[2] : '';//城市
+		_('x2').value = path.length >3 ? path[3] : '';//城市
+	}, '中国/广东省/湛江市/遂溪县',null, 5);
+});
+</script>
+</body>
+</html>
